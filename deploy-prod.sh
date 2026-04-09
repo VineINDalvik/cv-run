@@ -58,6 +58,9 @@ sshpass -p "$SERVER_PASS" rsync -avz package.json package-lock.json $SERVER_USER
 echo "  → Installing dependencies on Linux server (native modules compiled for Linux)..."
 sshpass -p "$SERVER_PASS" ssh $SERVER_USER@$SERVER_HOST "cd $DEPLOY_PATH && rm -rf node_modules && npm ci --production 2>&1 | tail -3" > /dev/null 2>&1
 
+echo "  → Copying native modules to .next/standalone..."
+sshpass -p "$SERVER_PASS" ssh $SERVER_USER@$SERVER_HOST "cd $DEPLOY_PATH && test -d .next/standalone/node_modules && cp -r node_modules/@napi-rs .next/standalone/node_modules/ 2>/dev/null; echo 'Done'" > /dev/null 2>&1
+
 echo "  → Deploying .next/static..."
 sshpass -p "$SERVER_PASS" rsync -avz --delete .next/static/ $SERVER_USER@$SERVER_HOST:$DEPLOY_PATH/.next/static/ > /dev/null 2>&1
 
@@ -76,8 +79,10 @@ echo -e "${GREEN}✓ Deployment complete${NC}"
 
 # Step 4: Restart PM2
 echo -e "\n${YELLOW}🔄 Step 4: Restarting PM2 process...${NC}"
+# CRITICAL: Only restart cv-run, do NOT touch other services (ignite, clare, work-doubao)
+# Using 'pm2 delete all' or 'pm2 restart all' will break other production services
 sshpass -p "$SERVER_PASS" ssh $SERVER_USER@$SERVER_HOST "cd $DEPLOY_PATH && pm2 delete cv-run 2>/dev/null; pm2 start ecosystem.config.js && sleep 2" > /dev/null 2>&1
-echo -e "${GREEN}✓ PM2 restarted${NC}"
+echo -e "${GREEN}✓ PM2 restarted (cv-run only)${NC}"
 
 # Step 5: Verify deployment
 echo -e "\n${YELLOW}✅ Step 5: Verifying deployment...${NC}"
