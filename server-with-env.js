@@ -18,5 +18,5 @@ if (fs.existsSync(envPath)) {
   })
 }
 
-// Now start the Next.js server (Next.js Standalone outputs to .next/standalone)
-require('./.next/standalone/server.js')
+// Now start the Next.js server (deployed to root via rsync from .next/standalone/)
+require('./server.js')
